@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <title>Storico Prelievi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            /* Colori più VIVACI e d'impatto */
+            --colore-blu-dodger: #1E90FF; /* Dodger Blue - Molto vibrante */
+            --colore-rosso: #FF4500;     /* OrangeRed - Rosso acceso */
+            --colore-arancione: #FF8C00; /* DarkOrange - Arancione intenso */
+            --colore-verde: #32CD32;     /* LimeGreen - Verde brillante */
+            --colore-primario: var(--colore-blu-dodger); /* Colore dinamico in base al magazzino */
+
+            --colore-sfondo: #F8F9FA; /* Sfondo chiaro e pulito */
+            --colore-testo: #343A40;  /* Testo scuro per contrasto */
+            --colore-bordo-leggero: #DEE2E6; /* Bordi sottili */
+            --colore-ombra: rgba(0, 0, 0, 0.08); /* Ombra leggera */
+            --colore-ombra-forte: rgba(0, 0, 0, 0.15); /* Ombra più marcata al focus/hover */
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            margin: 0; /* Rimosso margin fisso per migliore controllo */
+            padding: 20px; /* Aggiunto padding al body */
+            background: var(--colore-sfondo);
+            color: var(--colore-testo);
+            transition: background-color 0.5s ease;
+            line-height: 1.6;
+        }
+
+        h1, h2 {
+            color: var(--colore-primario);
+            transition: color 0.5s ease;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        label {
+            font-weight: 600;
+            margin-top: 15px; /* Aumentato spazio sopra le label */
+            display: block;
+            color: var(--colore-testo);
+        }
+
+        input, select, textarea {
+            padding: 10px 12px; /* Aumentato padding */
+            margin: 8px 0 15px 0; /* Aumentato spazio */
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid var(--colore-bordo-leggero);
+            border-radius: 8px; /* Angoli più arrotondati */
+            font-size: 15px;
+            color: var(--colore-testo);
+            background-color: #FFFFFF;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--colore-primario);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(var(--colore-primario-rgb), 0.2); /* Ombra al focus */
+        }
+
+        button, a.btn-primary { /* Applica stili a bottoni e link con classe btn-primary */
+            padding: 12px 20px; /* Aumentato padding */
+            margin: 8px 8px 8px 0; /* Spazio uniforme */
+            cursor: pointer;
+            border-radius: 8px; /* Angoli più arrotondati */
+            border: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 5px var(--colore-ombra); /* Ombra leggera */
+            text-decoration: none; /* Rimuove sottolineatura per i link */
+            display: inline-block; /* Per permettere padding e margin ai link */
+            text-align: center; /* Centra il testo nei link */
+        }
+        button.btn-primary, a.btn-primary {
+            background-color: var(--colore-primario);
+            color: white;
+        }
+        button.btn-primary:hover, a.btn-primary:hover {
+            filter: brightness(110%); /* Leggermente più luminoso */
+            transform: translateY(-2px); /* Effetto "sollevamento" */
+            box-shadow: 0 4px 10px var(--colore-ombra-forte); /* Ombra più marcata */
+        }
+        button.btn-danger {
+            background-color: #E74C3C; /* Rosso più specifico */
+            color: white;
+        }
+        button.btn-danger:hover {
+            filter: brightness(110%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px var(--colore-ombra-forte);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate; /* Per border-radius su celle */
+            border-spacing: 0; /* Per border-radius su celle */
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px; /* Angoli arrotondati per la tabella */
+            overflow: hidden; /* Nasconde bordi extra */
+            box-shadow: 0 4px 12px var(--colore-ombra); /* Ombra elegante */
+        }
+        th, td {
+            border: 1px solid var(--colore-bordo-leggero);
+            padding: 12px 15px; /* Più padding nelle celle */
+            text-align: left;
+            font-size: 14px;
+            vertical-align: top; /* Allinea il testo in alto */
+        }
+        th {
+            background-color: var(--colore-primario);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            transition: background-color 0.5s ease;
+            font-weight: 700;
+        }
+        /* Angoli arrotondati per le intestazioni */
+        th:first-child { border-top-left-radius: 10px; }
+        th:last-child { border-top-right-radius: 10px; }
+
+        tr:nth-child(even) { /* Righe alternate per migliore leggibilità */
+            background-color: #F8F9FA;
+        }
+        tr.zero {
+            background-color: #FFEBEE; /* Rosso chiaro per quantità zero */
+            color: #C0392B;
+            font-weight: 600;
+        }
+        
+        [contenteditable] {
+            background-color: #FFFDE7; /* Giallo pastello per campi modificabili */
+            border-radius: 5px;
+            padding: 4px 6px;
+            min-width: 60px;
+            display: inline-block;
+            border: 1px dashed var(--colore-bordo-leggero);
+            transition: background-color 0.3s ease;
+        }
+        [contenteditable]:focus {
+            background-color: #FFF9C4;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(var(--colore-primario-rgb), 0.1);
+        }
+
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px; /* Aumentato il gap */
+        }
+        .flex-col-3 {
+            flex: 1 1 calc(33.333% - 20px); /* Regolato per il gap */
+            min-width: 250px; /* Aumentato min-width */
+        }
+        @media (max-width: 768px) { /* Adattato breakpoint */
+            .flex-col-3 {
+                flex: 1 1 100%;
+                min-width: unset; /* Rimosso min-width per mobile */
+            }
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 20px; /* Spazio sotto la tabella */
+        }
+
+        /* Stili per la modale personalizzata */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.5); /* Sfondo più scuro e morbido */
+            justify-content: center;
+            align-items: center;
+            padding: 20px; /* Padding per la modale */
+            box-sizing: border-box;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 30px; /* Più padding */
+            border: none; /* Rimosso bordo */
+            width: 90%; /* Più largo su schermi piccoli */
+            max-width: 600px;
+            border-radius: 12px; /* Angoli molto arrotondati */
+            box-shadow: 0 8px 25px var(--colore-ombra-forte); /* Ombra più pronunciata */
+            text-align: center;
+            position: relative;
+            animation: fadeIn 0.3s ease-out; /* Animazione di apparizione */
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-buttons {
+            margin-top: 25px; /* Più spazio */
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* Più spazio tra i bottoni */
+        }
+        .modal-buttons button {
+            padding: 12px 25px; /* Più padding */
+            border-radius: 8px;
+            font-size: 15px;
+            box-shadow: 0 2px 5px var(--colore-ombra);
+        }
+        .modal-buttons .btn-ok, .modal-buttons .btn-yes {
+            background-color: var(--colore-primario);
+            color: white;
+        }
+        .modal-buttons .btn-cancel, .modal-buttons .btn-no {
+            background-color: #ADB5BD; /* Grigio più morbido */
+            color: white;
+        }
+        .modal-buttons .btn-ok:hover, .modal-buttons .btn-yes:hover {
+            filter: brightness(110%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px var(--colore-ombra-forte);
+        }
+        .modal-buttons .btn-cancel:hover, .modal-buttons .btn-no:hover {
+            background-color: #99A3AE;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px var(--colore-ombra-forte);
+        }
+        .modal-input {
+            width: calc(100% - 24px); /* Adattato al nuovo padding */
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid var(--colore-bordo-leggero);
+            border-radius: 8px;
+            font-size: 16px;
+            background-color: #FFFFFF;
+        }
+
+        /* Stili per lo spinner di caricamento */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--colore-primario);
+            border-radius: 50%;
+            width: 30px; /* Più grande */
+            height: 30px; /* Più grande */
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.85); /* Sfondo più opaco */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px; /* Più spazio */
+            font-size: 1.4em; /* Testo più grande */
+            color: var(--colore-testo);
+            backdrop-filter: blur(3px); /* Effetto sfocato */
+        }
+    </style>
+</head>
+<body>
+    <h1>Storico Prelievi</h1>
+
+    <!-- Modale personalizzata per alert e confirm -->
+    <div id="customModal" class="modal">
+        <div class="modal-content">
+            <p id="modalMessage"></p>
+            <input type="text" id="modalInput" class="modal-input" style="display: none;">
+            <div class="modal-buttons">
+                <button class="btn-ok" id="modalOkBtn" style="display: none;">OK</button>
+                <button class="btn-yes" id="modalYesBtn" style="display: none;">Sì</button>
+                <button class="btn-no" id="modalNoBtn" style="display: none;">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay di caricamento -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Generazione in corso...</p>
+    </div>
+
+    <input id="filtroStorico" placeholder="Cerca nello storico..." />
+    <div class="flex-row" style="margin-bottom: 10px;">
+        <input id="filtroOperatorePDF" placeholder="Filtra PDF per operatore..." />
+        <input id="filtroCodicePDF" placeholder="Filtra PDF per codice prodotto..." />
+        <input id="filtroNomePDF" placeholder="Filtra PDF per nome prodotto..." />
+    </div>
+    <div>
+        <button onclick="esportaStoricoPDF()" class="btn-primary">Scarica Tutto in PDF</button>
+        <button onclick="esportaStoricoPerOperatore()" class="btn-primary">Scarica per Operatore</button>
+        <button onclick="esportaStoricoPerCodice()" class="btn-primary">Scarica per Codice</button>
+        <button onclick="esportaStoricoPerNome()" class="btn-primary">Scarica per Nome Prodotto</button>
+        <!-- Bottone Riassumi Note Prelievi (funzionalità AI) rimosso -->
+    </div>
+    <div class="table-wrapper">
+        <table id="tabellaStorico">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Codice</th>
+                    <th>Nome</th>
+                    <th>Quantità Prelevata</th>
+                    <th>Operatore</th>
+                    <th>Note</th>
+                    <th>Magazzino Origine</th>
+                    <th>Giacenza Rimanente</th>
+                    <th>X</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <hr style="margin: 30px 0; border-top: 1px solid #ccc;">
+
+    <!-- Bottone per tornare all'app del magazzino -->
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="index.html" class="btn-primary">
+            Torna al Magazzino
+        </a>
+    </div>
+
+    <script>
+        // Funzioni per la modale personalizzata (duplicato per self-containment)
+        let resolveModalPromise;
+
+        function showModal(message, type, defaultValue = '') {
+            const modal = document.getElementById('customModal');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalInput = document.getElementById('modalInput');
+            const modalOkBtn = document.getElementById('modalOkBtn');
+            const modalYesBtn = document = document.getElementById('modalYesBtn');
+            const modalNoBtn = document.getElementById('modalNoBtn');
+
+            modalMessage.innerText = message;
+            modalInput.style.display = 'none';
+            modalOkBtn.style.display = 'none';
+            modalYesBtn.style.display = 'none';
+            modalNoBtn.style.display = 'none';
+
+            return new Promise(resolve => {
+                resolveModalPromise = resolve; // Store the resolve function
+
+                if (type === 'alert') {
+                    modalOkBtn.style.display = 'inline-block';
+                    modalOkBtn.onclick = () => {
+                        modal.style.display = 'none';
+                        resolve(true);
+                    };
+                } else if (type === 'confirm') {
+                    modalYesBtn.style.display = 'inline-block';
+                    modalNoBtn.style.display = 'inline-block';
+                    modalYesBtn.onclick = () => {
+                        modal.style.display = 'none';
+                        resolve(true);
+                    };
+                    modalNoBtn.onclick = () => {
+                        modal.style.display = 'none';
+                        resolve(false);
+                    };
+                } else if (type === 'prompt') {
+                    modalInput.style.display = 'block';
+                    modalInput.value = defaultValue;
+                    modalOkBtn.style.display = 'inline-block';
+                    modalOkBtn.onclick = () => {
+                        modal.style.display = 'none';
+                        resolve(modalInput.value);
+                    };
+                }
+                modal.style.display = 'flex'; // Use flex to center
+            });
+        }
+
+        async function showAlert(message) {
+            await showModal(message, 'alert');
+        }
+
+        async function showConfirm(message) {
+            return await showModal(message, 'confirm');
+        }
+
+        async function showPrompt(message, defaultValue = '') {
+            return await showModal(message, 'prompt', defaultValue);
+        }
+
+        let magazzinoCorrente = localStorage.getItem("magazzinoSelezionato") || "CD_SRL"; // Needed for PDF titles
+        const magazziniDisponibili = ["CD_SRL", "LM_SRL", "PROMETEO", "MATERIALE_CONSUMO"];
+
+        function setTema(magazzino) {
+            let colore;
+            let coloreRgb;
+            switch(magazzino) {
+                case "CD_SRL": colore = "#1E90FF"; coloreRgb = "30, 144, 255"; break; /* Dodger Blue */
+                case "LM_SRL": colore = "#FF4500"; coloreRgb = "255, 69, 0"; break;   /* OrangeRed */
+                case "PROMETEO": colore = "#FF8C00"; coloreRgb = "255, 140, 0"; break; /* DarkOrange */
+                case "MATERIALE_CONSUMO": colore = "#32CD32"; coloreRgb = "50, 205, 50"; break; /* LimeGreen */
+                default: colore = "#1E90FF"; coloreRgb = "30, 144, 255";
+            }
+            document.documentElement.style.setProperty('--colore-primario', colore);
+            document.documentElement.style.setProperty('--colore-primario-rgb', coloreRgb);
+        }
+
+        function salvaDatiInventario(dati, magazzino) { /* magazzino parameter is mandatory here */
+            localStorage.setItem(magazzino + "_dati", JSON.stringify(dati));
+        }
+        function caricaDatiInventario(magazzino) { /* magazzino parameter is mandatory here */
+            return JSON.parse(localStorage.getItem(magazzino + "_dati") || "[]");
+        }
+        function salvaStorico(dati) {
+            localStorage.setItem("storico_globale", JSON.stringify(dati));
+        }
+        function caricaStorico() {
+            return JSON.parse(localStorage.getItem("storico_globale") || "[]");
+        }
+
+        function aggiornaStorico() {
+            const filtro = document.getElementById("filtroStorico").value.toLowerCase();
+            const storico = caricaStorico();
+            const tbody = document.querySelector("#tabellaStorico tbody");
+            tbody.innerHTML = "";
+            storico.forEach((r, i) => {
+                if (
+                    r.codice.toLowerCase().includes(filtro) ||
+                    r.nome.toLowerCase().includes(filtro) ||
+                    r.operatore.toLowerCase().includes(filtro) ||
+                    r.data.toLowerCase().includes(filtro) ||
+                    (r.note && r.note.toLowerCase().includes(filtro)) ||
+                    (r.magazzinoOrigine && r.magazzinoOrigine.toLowerCase().includes(filtro))
+                ) {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${r.data}</td>
+                        <td>${r.codice}</td>
+                        <td>${r.nome || ""}</td>
+                        <td>${r.quantita}</td>
+                        <td>${r.operatore}</td>
+                        <td contenteditable oninput="aggiornaNota(${i}, this.innerText)">${r.note || ""}</td>
+                        <td>${r.magazzinoOrigine || "N/A"}</td>
+                        <td>${r.giacenzaRimanentePostPrelievo !== undefined ? r.giacenzaRimanentePostPrelievo : 'N/A'}</td>
+                        <td><button onclick="eliminaPrelievo(${i})" class="btn-danger">X</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+
+        function aggiornaNota(i, testo) {
+            const storico = caricaStorico();
+            storico[i].note = testo;
+            salvaStorico(storico);
+        }
+
+        async function eliminaPrelievo(i) {
+            const storico = caricaStorico();
+            const prelievoDaEliminare = storico[i];
+
+            const confirmed = await showConfirm("Eliminare questo prelievo? L'inventario verrà aggiornato di conseguenza.");
+            if (confirmed) {
+                const { codice, quantita, note, nome, unitaMisura, provenienza, ddt, descrizione, magazzinoOrigine } = prelievoDaEliminare;
+                let affectedWarehouse = magazzinoOrigine; // Usa il magazzino di origine registrato
+
+                // Se magazzinoOrigine non è definito (per vecchie voci), prova a dedurlo dalla nota
+                if (!affectedWarehouse) {
+                    const fromMatch = note.match(/\(da ([A-Z_]+)\)/);
+                    const toMatch = note.match(/\(a ([A-Z_]+)\)/);
+
+                    if (note.startsWith("Prelievo da ") || note.startsWith("Prelievo globale da ")) {
+                        const match = note.match(/da ([A-Z_]+)/);
+                        if (match && magazziniDisponibili.includes(match[1])) {
+                            affectedWarehouse = match[1];
+                        }
+                    } else if (note.startsWith("Trasferimento in uscita")) {
+                        if (fromMatch && magazziniDisponibili.includes(fromMatch[1])) {
+                            affectedWarehouse = fromMatch[1];
+                        }
+                    } else if (note.startsWith("Trasferimento in entrata")) {
+                        if (toMatch && magazziniDisponibili.includes(toMatch[1])) {
+                            affectedWarehouse = toMatch[1];
+                        }
+                    }
+                }
+
+                if (affectedWarehouse && magazziniDisponibili.includes(affectedWarehouse)) {
+                    const datiAffectedWarehouse = caricaDatiInventario(affectedWarehouse);
+                    const prodottoInInventario = datiAffectedWarehouse.find(p => p.codice === codice);
+
+                    if (prodottoInInventario) {
+                        // Logica per ripristinare la quantità
+                        if (note.includes("Prelievo") || note.includes("Trasferimento in uscita")) {
+                            prodottoInInventario.quantita += quantita;
+                        } else if (note.includes("Trasferimento in entrata")) {
+                            prodottoInInventario.quantita -= quantita;
+                        }
+                        salvaDatiInventario(datiAffectedWarehouse, affectedWarehouse);
+                    } else {
+                        // Se il prodotto non esiste più nell'inventario, lo ricrea con la quantità
+                        if (note.includes("Prelievo") || note.includes("Trasferimento in uscita")) {
+                             // Per il ripristino, se il prodotto non c'è, lo aggiungiamo con la quantità prelevata
+                            const newProduct = { codice, nome, quantita, unitaMisura, provenienza, ddt, descrizione };
+                            datiAffectedWarehouse.push(newProduct);
+                            salvaDatiInventario(datiAffectedWarehouse, affectedWarehouse);
+                        }
+                        // Non facciamo nulla per "Trasferimento in entrata" se il prodotto non c'è, perché significherebbe rimuovere qualcosa che non c'è
+                    }
+                } else {
+                    await showAlert(`Attenzione: Impossibile ripristinare il prodotto con codice ${codice}. Magazzino di origine non valido o non trovato.`);
+                }
+
+                storico.splice(i, 1);
+                salvaStorico(storico);
+                aggiornaStorico(); /* Refresh current historic table */
+                await showAlert("Prelievo eliminato e inventario aggiornato.");
+            }
+        }
+
+        // Helper per disegnare testo con a capo e calcolare l'altezza
+        function drawWrappedText(doc, text, x, y, maxWidth, lineHeight) {
+            const splitText = doc.splitTextToSize(text, maxWidth);
+            doc.text(splitText, x, y);
+            return splitText.length * lineHeight;
+        }
+
+        function generaPDF(storico, titolo = "Storico") {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFont("helvetica", "bold");
+            doc.text(`${titolo} - Storico Unificato`, 10, 10);
+            doc.setFontSize(8); /* Ridotto leggermente il font per più spazio */
+
+            const startY = 20;
+            let currentY = startY;
+            const lineHeight = 4; /* Altezza riga per font 8 */
+            const columnX = {
+                data: 5,
+                codice: 25,
+                nome: 48,
+                quantita: 78,
+                operatore: 95,
+                note: 120,
+                magazzinoOrigine: 160,
+                giacenzaRimanente: 185
+            };
+            const columnWidth = {
+                data: 18,
+                codice: 20,
+                nome: 28,
+                quantita: 15,
+                operatore: 25,
+                note: 38,
+                magazzinoOrigine: 20,
+                giacenzaRimanente: 18
+            };
+
+            // Intestazioni della tabella
+            doc.setFont("helvetica", "bold");
+            doc.text("Data", columnX.data, currentY);
+            doc.text("Codice", columnX.codice, currentY);
+            doc.text("Nome", columnX.nome, currentY);
+            doc.text("Q.tà Prev.", columnX.quantita, currentY);
+            doc.text("Operatore", columnX.operatore, currentY);
+            doc.text("Note", columnX.note, currentY);
+            doc.text("Mag. Origine", columnX.magazzinoOrigine, currentY);
+            doc.text("Giac. Rim.", columnX.giacenzaRimanente, currentY);
+            currentY += lineHeight + 2; /* Spazio dopo le intestazioni */
+
+            doc.setFont("helvetica", "normal");
+            storico.forEach(e => {
+                let rowMaxHeight = lineHeight; /* Altezza minima della riga */
+
+                // Controlla se è necessaria una nuova pagina
+                if (currentY + rowMaxHeight > 280) { /* 280 è vicino al fondo della pagina A4 */
+                    doc.addPage();
+                    currentY = startY;
+                    doc.setFont("helvetica", "bold");
+                    doc.text("Data", columnX.data, currentY);
+                    doc.text("Codice", columnX.codice, currentY);
+                    doc.text("Nome", columnX.nome, currentY);
+                    doc.text("Q.tà Prev.", columnX.quantita, currentY);
+                    doc.text("Operatore", columnX.operatore, currentY);
+                    doc.text("Note", columnX.note, currentY);
+                    doc.text("Mag. Origine", columnX.magazzinoOrigine, currentY);
+                    doc.text("Giac. Rim.", columnX.giacenzaRimanente, currentY);
+                    currentY += lineHeight + 2;
+                    doc.setFont("helvetica", "normal");
+                }
+
+                // Disegna il testo per ogni colonna e calcola l'altezza massima della riga
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, e.data, columnX.data, currentY, columnWidth.data, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, e.codice, columnX.codice, currentY, columnWidth.codice, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, e.nome || "", columnX.nome, currentY, columnWidth.nome, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, e.quantita.toString(), columnX.quantita, currentY, columnWidth.quantita, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, e.operatore, columnX.operatore, currentY, columnWidth.operatore, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, e.note || "", columnX.note, currentY, columnWidth.note, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, e.magazzinoOrigine || "N/A", columnX.magazzinoOrigine, currentY, columnWidth.magazzinoOrigine, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, e.giacenzaRimanentePostPrelievo !== undefined ? e.giacenzaRimanentePostPrelievo.toString() : 'N/A', columnX.giacenzaRimanente, currentY, columnWidth.giacenzaRimanente, lineHeight));
+                
+                currentY += rowMaxHeight + 2; /* Avanza Y per la riga successiva con un piccolo padding */
+            });
+            doc.save(`${titolo}_Storico.pdf`);
+        }
+
+        function esportaStoricoPDF() {
+            const storico = caricaStorico();
+            generaPDF(storico, "Storico Completo Prelievi");
+        }
+
+        function esportaStoricoPerOperatore() {
+            const operatoreFiltro = document.getElementById("filtroOperatorePDF").value.toLowerCase();
+            if (!operatoreFiltro) {
+                showAlert("Inserisci un operatore per filtrare.");
+                return;
+            }
+            const storicoFiltrato = caricaStorico().filter(r => r.operatore.toLowerCase().includes(operatoreFiltro));
+            generaPDF(storicoFiltrato, `Storico Prelievi per Operatore ${operatoreFiltro}`);
+        }
+
+        function esportaStoricoPerCodice() {
+            const codiceFiltro = document.getElementById("filtroCodicePDF").value.toLowerCase();
+            if (!codiceFiltro) {
+                showAlert("Inserisci un codice prodotto per filtrare.");
+                return;
+            }
+            const storicoFiltrato = caricaStorico().filter(r => r.codice.toLowerCase().includes(codiceFiltro));
+            generaPDF(storicoFiltrato, `Storico Prelievi per Codice ${codiceFiltro}`);
+        }
+
+        function esportaStoricoPerNome() {
+            const nomeFiltro = document.getElementById("filtroNomePDF").value.toLowerCase();
+            if (!nomeFiltro) {
+                showAlert("Inserisci un nome prodotto per filtrare.");
+                return;
+            }
+            const storicoFiltrato = caricaStorico().filter(r => r.nome.toLowerCase().includes(nomeFiltro));
+            generaPDF(storicoFiltrato, `Storico Prelievi per Nome ${nomeFiltro}`);
+        }
+
+        // Inizializzazione
+        document.addEventListener("DOMContentLoaded", () => {
+            // Carica il colore primario dal localStorage per la coerenza del tema
+            const savedPrimaryColor = localStorage.getItem("colorePrimario");
+            const savedPrimaryColorRgb = localStorage.getItem("colorePrimarioRgb");
+            if (savedPrimaryColor && savedPrimaryColorRgb) {
+                document.documentElement.style.setProperty('--colore-primario', savedPrimaryColor);
+                document.documentElement.style.setProperty('--colore-primario-rgb', savedPrimaryColorRgb);
+            } else {
+                // Se non c'è un colore salvato, imposta quello di default (CD_SRL)
+                setTema("CD_SRL");
+            }
+
+            aggiornaStorico();
+            document.getElementById("filtroStorico").addEventListener("keyup", aggiornaStorico);
+        });
+    </script>
+</body>
+</html>
