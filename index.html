@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <title>Gestionale Magazzino</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            /* Colori più VIVACI e d'impatto */
+            --colore-blu-dodger: #1E90FF; /* Dodger Blue - Molto vibrante */
+            --colore-rosso: #FF4500;     /* OrangeRed - Rosso acceso */
+            --colore-arancione: #FF8C00; /* DarkOrange - Arancione intenso */
+            --colore-verde: #32CD32;     /* LimeGreen - Verde brillante */
+            --colore-primario: var(--colore-blu-dodger); /* Colore dinamico in base al magazzino */
+
+            --colore-sfondo: #F8F9FA; /* Sfondo chiaro e pulito */
+            --colore-testo: #343A40;  /* Testo scuro per contrasto */
+            --colore-bordo-leggero: #DEE2E6; /* Bordi sottili */
+            --colore-ombra: rgba(0, 0, 0, 0.08); /* Ombra leggera */
+            --colore-ombra-forte: rgba(0, 0, 0, 0.15); /* Ombra più marcata al focus/hover */
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            margin: 0; /* Rimosso margin fisso per migliore controllo */
+            padding: 20px; /* Aggiunto padding al body */
+            background: var(--colore-sfondo);
+            color: var(--colore-testo);
+            transition: background-color 0.5s ease;
+            line-height: 1.6;
+        }
+
+        h1, h2 {
+            color: var(--colore-primario);
+            transition: color 0.5s ease;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        label {
+            font-weight: 600;
+            margin-top: 15px; /* Aumentato spazio sopra le label */
+            display: block;
+            color: var(--colore-testo);
+        }
+
+        input, select, textarea {
+            padding: 10px 12px; /* Aumentato padding */
+            margin: 8px 0 15px 0; /* Aumentato spazio */
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid var(--colore-bordo-leggero);
+            border-radius: 8px; /* Angoli più arrotondati */
+            font-size: 15px;
+            color: var(--colore-testo);
+            background-color: #FFFFFF;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--colore-primario);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(var(--colore-primario-rgb), 0.2); /* Ombra al focus */
+        }
+
+        button, a.btn-primary { /* Applica stili a bottoni e link con classe btn-primary */
+            padding: 12px 20px; /* Aumentato padding */
+            margin: 8px 8px 8px 0; /* Spazio uniforme */
+            cursor: pointer;
+            border-radius: 8px; /* Angoli più arrotondati */
+            border: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 5px var(--colore-ombra); /* Ombra leggera */
+            text-decoration: none; /* Rimuove sottolineatura per i link */
+            display: inline-block; /* Per permettere padding e margin ai link */
+            text-align: center; /* Centra il testo nei link */
+        }
+        button.btn-primary, a.btn-primary {
+            background-color: var(--colore-primario);
+            color: white;
+        }
+        button.btn-primary:hover, a.btn-primary:hover {
+            filter: brightness(110%); /* Leggermente più luminoso */
+            transform: translateY(-2px); /* Effetto "sollevamento" */
+            box-shadow: 0 4px 10px var(--colore-ombra-forte); /* Ombra più marcata */
+        }
+        button.btn-danger {
+            background-color: #E74C3C; /* Rosso più specifico */
+            color: white;
+        }
+        button.btn-danger:hover {
+            filter: brightness(110%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px var(--colore-ombra-forte);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate; /* Per border-radius su celle */
+            border-spacing: 0; /* Per border-radius su celle */
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px; /* Angoli arrotondati per la tabella */
+            overflow: hidden; /* Nasconde bordi extra */
+            box-shadow: 0 4px 12px var(--colore-ombra); /* Ombra elegante */
+        }
+        th, td {
+            border: 1px solid var(--colore-bordo-leggero);
+            padding: 12px 15px; /* Più padding nelle celle */
+            text-align: left;
+            font-size: 14px;
+            vertical-align: top; /* Allinea il testo in alto */
+        }
+        th {
+            background-color: var(--colore-primario);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            transition: background-color 0.5s ease;
+            font-weight: 700;
+        }
+        /* Angoli arrotondati per le intestazioni */
+        th:first-child { border-top-left-radius: 10px; }
+        th:last-child { border-top-right-radius: 10px; }
+
+        tr:nth-child(even) { /* Righe alternate per migliore leggibilità */
+            background-color: #F8F9FA;
+        }
+        tr.zero {
+            background-color: #FFEBEE; /* Rosso chiaro per quantità zero */
+            color: #C0392B;
+            font-weight: 600;
+        }
+        
+        [contenteditable] {
+            background-color: #FFFDE7; /* Giallo pastello per campi modificabili */
+            border-radius: 5px;
+            padding: 4px 6px;
+            min-width: 60px;
+            display: inline-block;
+            border: 1px dashed var(--colore-bordo-leggero);
+            transition: background-color 0.3s ease;
+        }
+        [contenteditable]:focus {
+            background-color: #FFF9C4;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(var(--colore-primario-rgb), 0.1);
+        }
+
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px; /* Aumentato il gap */
+        }
+        .flex-col-3 {
+            flex: 1 1 calc(33.333% - 20px); /* Regolato per il gap */
+            min-width: 250px; /* Aumentato min-width */
+        }
+        @media (max-width: 768px) { /* Adattato breakpoint */
+            .flex-col-3 {
+                flex: 1 1 100%;
+                min-width: unset; /* Rimosso min-width per mobile */
+            }
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 20px; /* Spazio sotto la tabella */
+        }
+
+        /* Stili per la modale personalizzata */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.5); /* Sfondo più scuro e morbido */
+            justify-content: center;
+            align-items: center;
+            padding: 20px; /* Padding per la modale */
+            box-sizing: border-box;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 30px; /* Più padding */
+            border: none; /* Rimosso bordo */
+            width: 90%; /* Più largo su schermi piccoli */
+            max-width: 600px;
+            border-radius: 12px; /* Angoli molto arrotondati */
+            box-shadow: 0 8px 25px var(--colore-ombra-forte); /* Ombra più pronunciata */
+            text-align: center;
+            position: relative;
+            animation: fadeIn 0.3s ease-out; /* Animazione di apparizione */
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-buttons {
+            margin-top: 25px; /* Più spazio */
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* Più spazio tra i bottoni */
+        }
+        .modal-buttons button {
+            padding: 12px 25px; /* Più padding */
+            border-radius: 8px;
+            font-size: 15px;
+            box-shadow: 0 2px 5px var(--colore-ombra);
+        }
+        .modal-buttons .btn-ok, .modal-buttons .btn-yes {
+            background-color: var(--colore-primario);
+            color: white;
+        }
+        .modal-buttons .btn-cancel, .modal-buttons .btn-no {
+            background-color: #ADB5BD; /* Grigio più morbido */
+            color: white;
+        }
+        .modal-buttons .btn-ok:hover, .modal-buttons .btn-yes:hover {
+            filter: brightness(110%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px var(--colore-ombra-forte);
+        }
+        .modal-buttons .btn-cancel:hover, .modal-buttons .btn-no:hover {
+            background-color: #99A3AE;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px var(--colore-ombra-forte);
+        }
+        .modal-input {
+            width: calc(100% - 24px); /* Adattato al nuovo padding */
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid var(--colore-bordo-leggero);
+            border-radius: 8px;
+            font-size: 16px;
+            background-color: #FFFFFF;
+        }
+
+        /* Stili per lo spinner di caricamento */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--colore-primario);
+            border-radius: 50%;
+            width: 30px; /* Più grande */
+            height: 30px; /* Più grande */
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.85); /* Sfondo più opaco */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px; /* Più spazio */
+            font-size: 1.4em; /* Testo più grande */
+            color: var(--colore-testo);
+            backdrop-filter: blur(3px); /* Effetto sfocato */
+        }
+
+        /* Stili specifici per la modale di prelievo */
+        .withdrawal-product-list {
+            max-height: 350px; /* Più alta */
+            overflow-y: auto;
+            border: 1px solid var(--colore-bordo-leggero);
+            margin-top: 20px;
+            padding: 15px;
+            text-align: left;
+            background-color: #FDFEFE; /* Sfondo leggermente diverso */
+            border-radius: 8px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Ombra interna */
+        }
+        .withdrawal-product-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed #E9ECEF; /* Linea più sottile */
+        }
+        .withdrawal-product-item:last-child {
+            border-bottom: none;
+        }
+        .withdrawal-product-info strong {
+            display: block;
+            font-size: 1.15em;
+            color: var(--colore-testo);
+            margin-bottom: 3px;
+        }
+        .withdrawal-product-info span {
+            font-size: 0.95em;
+            color: #6C757D; /* Grigio più scuro */
+        }
+        .withdrawal-quantity-input {
+            width: 90px; /* Più largo */
+            padding: 8px;
+            border: 1px solid #CED4DA;
+            border-radius: 6px;
+            text-align: right;
+            font-size: 1em;
+        }
+        .withdrawal-quantity-input:focus {
+             border-color: var(--colore-primario);
+             box-shadow: 0 0 0 2px rgba(var(--colore-primario-rgb), 0.15);
+        }
+    </style>
+</head>
+<body>
+    <h1>Gestionale Magazzino</h1>
+
+    <!-- Modale personalizzata per alert, confirm, prompt -->
+    <div id="customModal" class="modal">
+        <div class="modal-content">
+            <p id="modalMessage"></p>
+            <input type="text" id="modalInput" class="modal-input" style="display: none;">
+            <div class="modal-buttons">
+                <button class="btn-ok" id="modalOkBtn" style="display: none;">OK</button>
+                <button class="btn-yes" id="modalYesBtn" style="display: none;">Sì</button>
+                <button class="btn-no" id="modalNoBtn" style="display: none;">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale per il Nuovo Prelievo Globale -->
+    <div id="globalWithdrawalModal" class="modal">
+        <div class="modal-content">
+            <h2>Nuovo Prelievo Globale</h2>
+            <label for="withdrawalOperatorName">Operatore:</label>
+            <input type="text" id="withdrawalOperatorName" class="modal-input" placeholder="Nome e Cognome Operatore" />
+
+            <label for="productSearchInput">Cerca Prodotto (Nome o Codice):</label>
+            <input type="text" id="productSearchInput" class="modal-input" placeholder="Digita per cercare..." oninput="filterProductsForWithdrawal()" />
+
+            <div class="withdrawal-product-list" id="withdrawalProductList">
+                <!-- I prodotti filtrati verranno inseriti qui dinamicamente -->
+                <p style="text-align: center; color: #999;">Inizia a digitare per cercare prodotti...</p>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-primary" id="confirmGlobalWithdrawalBtn">Preleva</button>
+                <button class="btn-cancel" onclick="closeGlobalWithdrawalModal()">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Overlay di caricamento -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Caricamento...</p>
+    </div>
+
+    <label for="magazzinoSelect">Magazzino:</label>
+    <select id="magazzinoSelect">
+        <option value="CD_SRL">CD SRL</option>
+        <option value="LM_SRL">LM SRL</option>
+        <option value="PROMETEO">Prometeo</option>
+        <option value="MATERIALE_CONSUMO">Materiale di consumo</option>
+    </select>
+
+    <h2>Aggiungi Prodotto</h2>
+    <div class="flex-row">
+        <div class="flex-col-3">
+            <label for="nome">Nome</label>
+            <input id="nome" placeholder="Nome" />
+        </div>
+        <div class="flex-col-3">
+            <label for="codice">Codice</label>
+            <input id="codice" placeholder="Codice" />
+        </div>
+        <div class="flex-col-3">
+            <label for="quantita">Quantità</label>
+            <input id="quantita" type="number" min="0" placeholder="Quantità" />
+        </div>
+    </div>
+    <div class="flex-row">
+        <div class="flex-col-3">
+            <label for="unitaMisura">Unità di misura</label>
+            <input id="unitaMisura" placeholder="es: pezzi, kg, litri..." />
+        </div>
+        <div class="flex-col-3">
+            <label for="provenienza">Provenienza</label>
+            <input id="provenienza" placeholder="Provenienza" />
+        </div>
+        <div class="flex-col-3">
+            <label for="ddt">Numero DDT</label>
+            <input id="ddt" placeholder="Numero DDT" />
+        </div>
+    </div>
+    <label for="descrizione">Descrizione</label>
+    <textarea id="descrizione" rows="2" placeholder="Descrizione"></textarea>
+    <button onclick="aggiungiProdotto()" class="btn-primary">Aggiungi</button>
+    <button onclick="document.getElementById('jsonFileInput').click()" class="btn-primary">Importa JSON 📥</button>
+    <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+
+
+    <h2>Inventario</h2>
+    <input id="filtroInventario" placeholder="Cerca per nome o codice..." />
+    <div class="table-wrapper">
+        <table id="tabellaMagazzino">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Codice</th>
+                    <th>Quantità</th>
+                    <th>Unità</th>
+                    <th>Provenienza</th>
+                    <th>DDT</th>
+                    <th>Descrizione</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <button onclick="cancellaTuttoInventario()" class="btn-danger">Cancella Tutto</button>
+    <button onclick="esportaInventarioPDF()" class="btn-primary">Esporta Inventario in PDF</button>
+
+    <hr style="margin: 30px 0; border-top: 1px solid #ccc;">
+
+    <!-- Nuovi bottoni per le funzionalità aggiuntive -->
+    <div style="text-align: center; margin-top: 20px;">
+        <button onclick="showGlobalWithdrawalModal()" class="btn-primary">Nuovo Prelievo Globale 📦</button>
+        <a href="storico_prelievi.html" class="btn-primary">
+            Visualizza Storico Prelievi
+        </a>
+    </div>
+
+    <script>
+        // Funzioni per la modale personalizzata (alert, confirm, prompt)
+        let resolveModalPromise;
+
+        function showModal(message, type, defaultValue = '') {
+            const modal = document.getElementById('customModal');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalInput = document.getElementById('modalInput');
+            const modalOkBtn = document.getElementById('modalOkBtn');
+            const modalYesBtn = document.getElementById('modalYesBtn');
+            const modalNoBtn = document.getElementById('modalNoBtn');
+
+            modalMessage.innerText = message;
+            modalInput.style.display = 'none';
+            modalOkBtn.style.display = 'none';
+            modalYesBtn.style.display = 'none';
+            modalNoBtn.style.display = 'none';
+
+            return new Promise(resolve => {
+                resolveModalPromise = resolve; // Store the resolve function
+
+                if (type === 'alert') {
+                    modalOkBtn.style.display = 'inline-block';
+                    modalOkBtn.onclick = () => {
+                        modal.style.display = 'none';
+                        resolve(true);
+                    };
+                } else if (type === 'confirm') {
+                    modalYesBtn.style.display = 'inline-block';
+                    modalNoBtn.style.display = 'inline-block';
+                    modalYesBtn.onclick = () => {
+                        modal.style.display = 'none';
+                        resolve(true);
+                    };
+                    modalNoBtn.onclick = () => {
+                        modal.style.display = 'none';
+                        resolve(false);
+                    };
+                } else if (type === 'prompt') {
+                    modalInput.style.display = 'block';
+                    modalInput.value = defaultValue;
+                    modalOkBtn.style.display = 'inline-block';
+                    modalOkBtn.onclick = () => {
+                        modal.style.display = 'none';
+                        resolve(modalInput.value);
+                    };
+                }
+                modal.style.display = 'flex'; // Use flex to center
+            });
+        }
+
+        async function showAlert(message) {
+            await showModal(message, 'alert');
+        }
+
+        async function showConfirm(message) {
+            return await showModal(message, 'confirm');
+        }
+
+        async function showPrompt(message, defaultValue = '') {
+            return await showModal(message, 'prompt', defaultValue);
+        }
+
+        let magazzinoCorrente = localStorage.getItem("magazzinoSelezionato") || "CD_SRL";
+        const magazziniDisponibili = ["CD_SRL", "LM_SRL", "PROMETEO", "MATERIALE_CONSUMO"];
+
+        function setTema(magazzino) {
+            let colore;
+            let coloreRgb;
+            switch(magazzino) {
+                case "CD_SRL": colore = "#1E90FF"; coloreRgb = "30, 144, 255"; break; /* Dodger Blue */
+                case "LM_SRL": colore = "#FF4500"; coloreRgb = "255, 69, 0"; break;   /* OrangeRed */
+                case "PROMETEO": colore = "#FF8C00"; coloreRgb = "255, 140, 0"; break; /* DarkOrange */
+                case "MATERIALE_CONSUMO": colore = "#32CD32"; coloreRgb = "50, 205, 50"; break; /* LimeGreen */
+                default: colore = "#1E90FF"; coloreRgb = "30, 144, 255";
+            }
+            document.documentElement.style.setProperty('--colore-primario', colore);
+            document.documentElement.style.setProperty('--colore-primario-rgb', coloreRgb);
+            // Salva il colore primario nel localStorage per la coerenza tra le pagine
+            localStorage.setItem("colorePrimario", colore);
+            localStorage.setItem("colorePrimarioRgb", coloreRgb);
+        }
+
+        function salvaDatiInventario(dati, magazzino = magazzinoCorrente) {
+            localStorage.setItem(magazzino + "_dati", JSON.stringify(dati));
+        }
+        function caricaDatiInventario(magazzino = magazzinoCorrente) {
+            return JSON.parse(localStorage.getItem(magazzino + "_dati") || "[]");
+        }
+        function salvaStorico(dati) {
+            localStorage.setItem("storico_globale", JSON.stringify(dati));
+        }
+        function caricaStorico() {
+            return JSON.parse(localStorage.getItem("storico_globale") || "[]");
+        }
+
+        function aggiornaTabella() {
+            const dati = caricaDatiInventario();
+            const filtro = document.getElementById("filtroInventario").value.toLowerCase();
+            const tbody = document.querySelector("#tabellaMagazzino tbody");
+            tbody.innerHTML = "";
+            dati.forEach((p, i) => {
+                if (
+                    p.nome.toLowerCase().includes(filtro) ||
+                    p.codice.toLowerCase().includes(filtro) ||
+                    (p.provenienza && p.provenienza.toLowerCase().includes(filtro)) ||
+                    (p.ddt && p.ddt.toLowerCase().includes(filtro)) ||
+                    (p.descrizione && p.descrizione.toLowerCase().includes(filtro)) ||
+                    (p.unitaMisura && p.unitaMisura.toLowerCase().includes(filtro))
+                ) {
+                    const tr = document.createElement("tr");
+                    if (p.quantita === 0) tr.classList.add("zero");
+                    tr.innerHTML = `
+                        <td>${p.nome}</td>
+                        <td>${p.codice}</td>
+                        <td>${p.quantita}</td>
+                        <td>${p.unitaMisura || ""}</td>
+                        <td>${p.provenienza || ""}</td>
+                        <td>${p.ddt || ""}</td>
+                        <td>${p.descrizione || ""}</td>
+                        <td>
+                            <button onclick="preleva(${i})" class="btn-primary">Preleva</button>
+                            <button onclick="modificaProdotto(${i})" class="btn-primary">Modifica</button>
+                            <button onclick="trasferisciProdotto(${i})" class="btn-primary">Trasferisci Tutto</button>
+                            <button onclick="eliminaProdotto(${i})" class="btn-danger">Elimina</button>
+                        </td>`;
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+
+        async function aggiungiProdotto() {
+            const nome = document.getElementById("nome").value.trim();
+            const codice = document.getElementById("codice").value.trim();
+            const quantita = parseInt(document.getElementById("quantita").value);
+            const provenienza = document.getElementById("provenienza").value.trim();
+            const ddt = document.getElementById("ddt").value.trim();
+            const descrizione = document.getElementById("descrizione").value.trim();
+            const unitaMisura = document.getElementById("unitaMisura").value.trim();
+
+            if (!nome || !codice || isNaN(quantita) || quantita < 0) {
+                await showAlert("Dati mancanti o non validi.");
+                return;
+            }
+
+            const dati = caricaDatiInventario();
+            const esistente = dati.find(p => p.codice === codice);
+            if (esistente) {
+                esistente.quantita += quantita;
+                esistente.nome = nome;
+                esistente.provenienza = provenienza;
+                esistente.ddt = ddt;
+                esistente.descrizione = descrizione;
+                esistente.unitaMisura = unitaMisura;
+            } else {
+                dati.push({ nome, codice, quantita, provenienza, ddt, descrizione, unitaMisura });
+            }
+            salvaDatiInventario(dati);
+            aggiornaTabella();
+            document.querySelectorAll("input, textarea").forEach(e => e.value = "");
+        }
+
+        async function preleva(index) {
+            const dati = caricaDatiInventario();
+            const p = dati[index];
+            const operatore = await showPrompt("Nome e Cognome operatore:");
+            if (!operatore) return;
+            if (!operatore.trim()) {
+                await showAlert("Nome operatore non può essere vuoto.");
+                return;
+            }
+
+            const qtaStr = await showPrompt("Quantità da prelevare:");
+            const qta = parseInt(qtaStr);
+            if (isNaN(qta) || qta <= 0 || qta > p.quantita) {
+                await showAlert("Quantità non valida o insufficiente.");
+                return;
+            }
+            p.quantita -= qta;
+            salvaDatiInventario(dati);
+            const storico = caricaStorico();
+            storico.push({
+                data: new Date().toLocaleString(),
+                codice: p.codice,
+                nome: p.nome,
+                quantita: qta,
+                operatore,
+                note: `Prelievo da ${magazzinoCorrente}`,
+                magazzinoOrigine: magazzinoCorrente, // Aggiunto magazzino di origine
+                giacenzaRimanentePostPrelievo: p.quantita // Aggiunta giacenza rimanente dopo il prelievo
+            });
+            salvaStorico(storico);
+            aggiornaTabella();
+            // Non aggiorniamo lo storico qui, lo farà la pagina dedicata
+        }
+
+        async function modificaProdotto(i) {
+            const dati = caricaDatiInventario();
+            const p = dati[i];
+
+            const nuovoNome = await showPrompt("Nome:", p.nome);
+            if (nuovoNome === null) return;
+            const nuovoCodice = await showPrompt("Codice:", p.codice);
+            if (nuovoCodice === null) return;
+            const nuovaQuantitaStr = await showPrompt("Quantità:", p.quantita);
+            if (nuovaQuantitaStr === null) return;
+            const nuovaQuantita = parseInt(nuovaQuantitaStr);
+
+            const nuovaUnita = await showPrompt("Unità di misura:", p.unitaMisura || "");
+            if (nuovaUnita === null) return;
+            const nuovaProvenienza = await showPrompt("Provenienza:", p.provenienza || "");
+            if (nuovaProvenienza === null) return;
+            const nuovoDdt = await showPrompt("Numero DDT:", p.ddt || "");
+            if (nuovoDdt === null) return;
+            const nuovaDescrizione = await showPrompt("Descrizione:", p.descrizione || "");
+            if (nuovaDescrizione === null) return;
+
+            if (!nuovoNome.trim() || !nuovoCodice.trim() || isNaN(nuovaQuantita)) {
+                await showAlert("Nome, codice e quantità sono obbligatori e validi.");
+                return;
+            }
+
+            const codiceGiaUsato = dati.some((prod, idx) => idx !== i && prod.codice === nuovoCodice.trim());
+            if (codiceGiaUsato) {
+                await showAlert("Codice prodotto già esistente.");
+                return;
+            }
+
+            p.nome = nuovoNome.trim();
+            p.codice = nuovoCodice.trim();
+            p.quantita = nuovaQuantita;
+            p.unitaMisura = nuovaUnita.trim();
+            p.provenienza = nuovaProvenienza.trim();
+            p.ddt = nuovoDdt.trim();
+            p.descrizione = nuovaDescrizione.trim();
+
+            salvaDatiInventario(dati);
+            aggiornaTabella();
+        }
+
+        async function eliminaProdotto(i) {
+            const dati = caricaDatiInventario();
+            const confirmed = await showConfirm("Eliminare questo prodotto?");
+            if (confirmed) {
+                dati.splice(i, 1);
+                salvaDatiInventario(dati);
+                aggiornaTabella();
+            }
+        }
+
+        async function cancellaTuttoInventario() {
+            const confirmed = await showConfirm("Cancellare tutto l'inventario?");
+            if (confirmed) {
+                salvaDatiInventario([]);
+                aggiornaTabella();
+            }
+        }
+
+        async function trasferisciProdotto(index) {
+            const datiMagazzinoCorrente = caricaDatiInventario();
+            const prodottoDaTrasferire = datiMagazzinoCorrente[index];
+
+            if (prodottoDaTrasferire.quantita === 0) {
+                await showAlert("Impossibile trasferire un prodotto con quantità zero.");
+                return;
+            }
+
+            const operatore = await showPrompt("Nome e Cognome operatore per il trasferimento:");
+            if (!operatore || !operatore.trim()) {
+                await showAlert("Nome operatore non può essere vuoto.");
+                return;
+            }
+
+            let destinazioneMagazzino = await showPrompt(`Trasferisci TUTTO il prodotto '${prodottoDaTrasferire.nome}' (Quantità attuale: ${prodottoDaTrasferire.quantita}) a quale magazzino? Scegli tra: ${magazziniDisponibili.filter(m => m !== magazzinoCorrente).join(', ')}`);
+            if (!destinazioneMagazzino) return;
+            destinazioneMagazzino = destinazioneMagazzino.toUpperCase();
+
+            if (!magazziniDisponibili.includes(destinazioneMagazzino) || destinazioneMagazzino === magazzinoCorrente) {
+                await showAlert("Magazzino di destinazione non valido o uguale al magazzino corrente.");
+                return;
+            }
+
+            const quantitaDaTrasferire = prodottoDaTrasferire.quantita;
+
+            prodottoDaTrasferire.quantita = 0;
+            salvaDatiInventario(datiMagazzinoCorrente);
+
+            const datiMagazzinoDestinazione = caricaDatiInventario(destinazioneMagazzino);
+            const prodottoEsistenteDestinazione = datiMagazzinoDestinazione.find(p => p.codice === prodottoDaTrasferire.codice);
+
+            if (prodottoEsistenteDestinazione) {
+                prodottoEsistenteDestinazione.quantita += quantitaDaTrasferire;
+            } else {
+                const nuovoProdotto = { ...prodottoDaTrasferire, quantita: quantitaDaTrasferire };
+                datiMagazzinoDestinazione.push(nuovoProdotto);
+            }
+            salvaDatiInventario(datiMagazzinoDestinazione, destinazioneMagazzino);
+
+            const storicoGlobale = caricaStorico();
+            storicoGlobale.push({
+                data: new Date().toLocaleString(),
+                codice: prodottoDaTrasferire.codice,
+                nome: prodottoDaTrasferire.nome,
+                quantita: quantitaDaTrasferire,
+                operatore: operatore,
+                note: `Trasferimento in uscita (da ${magazzinoCorrente}) verso ${destinazioneMagazzino}`,
+                magazzinoOrigine: magazzinoCorrente, // Aggiunto magazzino di origine
+                giacenzaRimanentePostPrelievo: 0 // Dopo trasferimento completo la giacenza è 0 nel magazzino di origine
+            });
+            
+            storicoGlobale.push({
+                data: new Date().toLocaleString(),
+                codice: prodottoDaTrasferire.codice,
+                nome: prodottoDaTrasferire.nome,
+                quantita: quantitaDaTrasferire,
+                operatore: operatore,
+                note: `Trasferimento in entrata (a ${destinazioneMagazzino}) da ${magazzinoCorrente}`,
+                magazzinoOrigine: destinazioneMagazzino, // Magazzino di destinazione
+                giacenzaRimanentePostPrelievo: (prodottoEsistenteDestinazione ? prodottoEsistenteDestinazione.quantita : 0) + quantitaDaTrasferire // Giacenza dopo l'entrata nel magazzino di destinazione
+            });
+            salvaStorico(storicoGlobale);
+
+            await showAlert(`Trasferimento COMPLETO di ${prodottoDaTrasferire.nome} (${quantitaDaTrasferire} unità) da ${magazzinoCorrente} a ${destinazioneMagazzino} completato.`);
+            aggiornaTabella();
+        }
+
+        // Funzione per importare dati da un file JSON
+        async function importJsonFile(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                await showAlert("Nessun file selezionato.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const jsonContent = e.target.result;
+                    const importedData = JSON.parse(jsonContent);
+
+                    // Validazione semplice: verifica che sia un array e che gli oggetti abbiano almeno nome e codice
+                    if (!Array.isArray(importedData) || !importedData.every(item => item.nome && item.codice)) {
+                        await showAlert("Il file JSON non è nel formato atteso (array di prodotti con 'nome' e 'codice').");
+                        return;
+                    }
+
+                    // Chiedi conferma all'utente se vuole sovrascrivere o unire i dati
+                    const currentData = caricaDatiInventario();
+                    let finalData = [];
+
+                    if (currentData.length > 0) {
+                        const choice = await showPrompt("I dati esistenti verranno sovrascritti o uniti? Digita 'sovrascrivi' o 'unisci'.");
+                        if (choice && choice.toLowerCase() === 'sovrascrivi') {
+                            finalData = importedData;
+                            await showAlert("Dati sovrascritti con successo!");
+                        } else if (choice && choice.toLowerCase() === 'unisci') {
+                            // Unisci i dati: se un prodotto esiste già (stesso codice), aggiorna la quantità, altrimenti aggiungi
+                            const mergedData = [...currentData];
+                            importedData.forEach(importedProduct => {
+                                const existingProductIndex = mergedData.findIndex(p => p.codice === importedProduct.codice);
+                                if (existingProductIndex > -1) {
+                                    // Aggiorna quantità e altri campi se presenti nel file importato
+                                    mergedData[existingProductIndex].quantita = (mergedData[existingProductIndex].quantita || 0) + (importedProduct.quantita || 0);
+                                    // Puoi decidere di aggiornare anche altri campi come nome, descrizione, ecc.
+                                    if (importedProduct.nome) mergedData[existingProductIndex].nome = importedProduct.nome;
+                                    if (importedProduct.unitaMisura) mergedData[existingProductIndex].unitaMisura = importedProduct.unitaMisura;
+                                    if (importedProduct.provenienza) mergedData[existingProductIndex].provenienza = importedProduct.provenienza;
+                                    if (importedProduct.ddt) mergedData[existingProductIndex].ddt = importedProduct.ddt;
+                                    if (importedProduct.descrizione) mergedData[existingProductIndex].descrizione = importedProduct.descrizione;
+                                } else {
+                                    mergedData.push(importedProduct);
+                                }
+                            });
+                            finalData = mergedData;
+                            await showAlert("Dati uniti con successo!");
+                        } else {
+                            await showAlert("Operazione annullata. Nessun dato importato.");
+                            return;
+                        }
+                    } else {
+                        finalData = importedData;
+                        await showAlert("Dati importati con successo!");
+                    }
+                    
+                    salvaDatiInventario(finalData);
+                    aggiornaTabella();
+
+                } catch (error) {
+                    console.error("Errore durante l'importazione del file JSON:", error);
+                    await showAlert("Errore durante l'importazione del file JSON. Assicurati che sia un JSON valido e ben formattato.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+
+        function cambiaMagazzino() {
+            magazzinoCorrente = document.getElementById("magazzinoSelect").value;
+            localStorage.setItem("magazzinoSelezionato", magazzinoCorrente);
+            setTema(magazzinoCorrente);
+            aggiornaTabella();
+        }
+
+        // Helper per disegnare testo con a capo e calcolare l'altezza
+        function drawWrappedText(doc, text, x, y, maxWidth, lineHeight) {
+            const splitText = doc.splitTextToSize(text, maxWidth);
+            doc.text(splitText, x, y);
+            return splitText.length * lineHeight;
+        }
+
+        function esportaInventarioPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFont("helvetica", "bold");
+            doc.text(`Inventario Magazzino ${magazzinoCorrente}`, 10, 10);
+            doc.setFontSize(9); /* Ridotto leggermente il font per più spazio */
+            
+            const startY = 20;
+            let currentY = startY;
+            const lineHeight = 5; /* Altezza riga per font 9 */
+            const columnX = {
+                nome: 10,
+                codice: 45,
+                quantita: 75,
+                unita: 90,
+                provenienza: 105,
+                ddt: 130,
+                descrizione: 155
+            };
+            const columnWidth = {
+                nome: 30,
+                codice: 25,
+                quantita: 15,
+                unita: 15,
+                provenienza: 20,
+                ddt: 20,
+                descrizione: 45
+            };
+
+            // Intestazioni della tabella
+            doc.setFont("helvetica", "bold");
+            doc.text("Nome", columnX.nome, currentY);
+            doc.text("Codice", columnX.codice, currentY);
+            doc.text("Quantità", columnX.quantita, currentY);
+            doc.text("Unità", columnX.unita, currentY);
+            doc.text("Provenienza", columnX.provenienza, currentY);
+            doc.text("DDT", columnX.ddt, currentY);
+            doc.text("Descrizione", columnX.descrizione, currentY);
+            currentY += lineHeight + 2; /* Spazio dopo le intestazioni */
+
+            doc.setFont("helvetica", "normal");
+            const dati = caricaDatiInventario();
+            dati.forEach(p => {
+                let rowMaxHeight = lineHeight; /* Altezza minima della riga */
+
+                // Controlla se è necessaria una nuova pagina
+                if (currentY + rowMaxHeight > 280) { /* 280 è vicino al fondo della pagina A4 */
+                    doc.addPage();
+                    currentY = startY;
+                    doc.setFont("helvetica", "bold");
+                    doc.text("Nome", columnX.nome, currentY);
+                    doc.text("Codice", columnX.codice, currentY);
+                    doc.text("Quantità", columnX.quantita, currentY);
+                    doc.text("Unità", columnX.unita, currentY);
+                    doc.text("Provenienza", columnX.provenienza, currentY);
+                    doc.text("DDT", columnX.ddt, currentY);
+                    doc.text("Descrizione", columnX.descrizione, currentY);
+                    currentY += lineHeight + 2;
+                    doc.setFont("helvetica", "normal");
+                }
+
+                // Disegna il testo per ogni colonna e calcola l'altezza massima della riga
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.nome, columnX.nome, currentY, columnWidth.nome, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.codice, columnX.codice, currentY, columnWidth.codice, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.quantita.toString(), columnX.quantita, currentY, columnWidth.quantita, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.unitaMisura || "", columnX.unita, currentY, columnWidth.unita, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.provenienza || "", columnX.provenienza, currentY, columnWidth.provenienza, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.ddt || "", columnX.ddt, currentY, columnWidth.ddt, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.descrizione || "", columnX.descrizione, currentY, columnWidth.descrizione, lineHeight));
+                
+                currentY += rowMaxHeight + 2; /* Avanza Y per la riga successiva con un piccolo padding */
+            });
+            doc.save(`Inventario_${magazzinoCorrente}.pdf`);
+        }
+
+        // --- Funzionalità per il Nuovo Prelievo Globale ---
+
+        // Variabile per memorizzare tutti i prodotti disponibili con il loro magazzino di origine
+        var allProducts = []; 
+
+        // Funzione per aprire la modale di prelievo globale
+        async function showGlobalWithdrawalModal() {
+            const globalWithdrawalModal = document.getElementById('globalWithdrawalModal');
+            const withdrawalOperatorNameInput = document.getElementById('withdrawalOperatorName');
+            const productSearchInput = document.getElementById('productSearchInput');
+            const confirmGlobalWithdrawalBtn = document.getElementById('confirmGlobalWithdrawalBtn');
+
+            // Reset della modale
+            withdrawalOperatorNameInput.value = '';
+            productSearchInput.value = '';
+            document.getElementById('withdrawalProductList').innerHTML = '<p style="text-align: center; color: #999;">Inizia a digitare per cercare prodotti...</p>';
+            allProducts = []; // Resetta la lista dei prodotti per la ricerca
+
+            // Carica tutti i prodotti da tutti i magazzini all'apertura della modale
+            for (const warehouse of magazziniDisponibili) {
+                const dati = caricaDatiInventario(warehouse);
+                dati.forEach(p => {
+                    if (p.quantita > 0) { // Mostra solo prodotti con quantità disponibile
+                        allProducts.push({
+                            ...p,
+                            originalWarehouse: warehouse, // Aggiungi il magazzino di origine
+                            withdrawalQuantity: 0 // Quantità da prelevare, inizializzata a 0
+                        });
+                    }
+                });
+            }
+            console.log("DEBUG - Prodotti caricati per prelievo globale:", allProducts); // Log per debug
+
+            globalWithdrawalModal.style.display = 'flex';
+
+            // Listener per il bottone di conferma prelievo
+            confirmGlobalWithdrawalBtn.onclick = confirmGlobalWithdrawal;
+        }
+
+        // Funzione per chiudere la modale di prelievo globale
+        function closeGlobalWithdrawalModal() {
+            document.getElementById('globalWithdrawalModal').style.display = 'none';
+        }
+
+        // Funzione per filtrare e visualizzare i prodotti nella modale di prelievo
+        function filterProductsForWithdrawal() {
+            const searchTerm = document.getElementById('productSearchInput').value.toLowerCase().trim();
+            const productListDiv = document.getElementById('withdrawalProductList');
+            productListDiv.innerHTML = ''; // Pulisci la lista
+
+            if (searchTerm.length < 2) { // Inizia a filtrare dopo almeno 2 caratteri
+                productListDiv.innerHTML = '<p style="text-align: center; color: #999;">Digita almeno 2 caratteri per cercare...</p>';
+                return;
+            }
+
+            const filteredProducts = allProducts.filter(p =>
+                p.nome.toLowerCase().includes(searchTerm) ||
+                p.codice.toLowerCase().includes(searchTerm) ||
+                (p.unitaMisura && p.unitaMisura.toLowerCase().includes(searchTerm)) ||
+                (p.provenienza && p.provenienza.toLowerCase().includes(searchTerm)) ||
+                (p.ddt && p.ddt.toLowerCase().includes(searchTerm)) ||
+                (p.descrizione && p.descrizione.toLowerCase().includes(searchTerm))
+            );
+
+            if (filteredProducts.length === 0) {
+                productListDiv.innerHTML = '<p style="text-align: center; color: #999;">Nessun prodotto trovato.</p>';
+                return;
+            }
+
+            filteredProducts.forEach(p => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('withdrawal-product-item');
+                itemDiv.innerHTML = `
+                    <div class="withdrawal-product-info">
+                        <strong>${p.nome} (${p.codice})</strong>
+                        <span>Disponibile: ${p.quantita} ${p.unitaMisura || ''} in ${p.originalWarehouse}</span>
+                    </div>
+                    <input type="number" min="0" max="${p.quantita}" value="${p.withdrawalQuantity}" 
+                           class="withdrawal-quantity-input" 
+                           data-product-code="${p.codice}" 
+                           data-product-warehouse="${p.originalWarehouse}"
+                           oninput="updateWithdrawalQuantity(this)">
+                `;
+                productListDiv.appendChild(itemDiv);
+            });
+        }
+
+        // Aggiorna la quantità da prelevare nel modello dati
+        function updateWithdrawalQuantity(inputElement) {
+            const productCode = inputElement.dataset.productCode;
+            const productWarehouse = inputElement.dataset.productWarehouse;
+            const value = parseInt(inputElement.value);
+
+            console.log("DEBUG - updateWithdrawalQuantity chiamato per input:", inputElement);
+            console.log("  DEBUG - data-product-code:", productCode);
+            console.log("  DEBUG - data-product-warehouse:", productWarehouse);
+            console.log("  DEBUG - valore parsato:", value);
+
+            // Trova l'oggetto prodotto corretto nell'array allProducts
+            const product = allProducts.find(p => p.codice === productCode && p.originalWarehouse === productWarehouse);
+
+            if (!product) {
+                console.error("ERRORE - Prodotto non trovato in allProducts:", productCode, productWarehouse);
+                return; 
+            }
+            console.log("  DEBUG - prodotto trovato in allProducts:", product);
+
+            if (isNaN(value) || value < 0) {
+                product.withdrawalQuantity = 0;
+                inputElement.value = 0;
+            } else if (value > product.quantita) {
+                product.withdrawalQuantity = product.quantita;
+                inputElement.value = product.quantita;
+            } else {
+                product.withdrawalQuantity = value;
+            }
+            console.log("  DEBUG - nuova quantità prelevata per il prodotto:", product.withdrawalQuantity);
+        }
+
+        // Funzione per confermare il prelievo globale
+        async function confirmGlobalWithdrawal() {
+            const operatore = document.getElementById('withdrawalOperatorName').value.trim();
+            if (!operatore) {
+                await showAlert("Inserisci il nome dell'operatore per il prelievo.");
+                return;
+            }
+
+            const productsToWithdraw = allProducts.filter(p => p.withdrawalQuantity > 0);
+
+            if (productsToWithdraw.length === 0) {
+                await showAlert("Seleziona almeno un prodotto e inserisci una quantità da prelevare.");
+                return;
+            }
+
+            const confirmed = await showConfirm(`Confermi il prelievo di ${productsToWithdraw.length} prodotti per l'operatore ${operatore}?`);
+            if (!confirmed) {
+                return;
+            }
+
+            const storicoGlobale = caricaStorico();
+            let withdrawalSuccess = true;
+
+            for (const p of productsToWithdraw) {
+                const datiSourceWarehouse = caricaDatiInventario(p.originalWarehouse);
+                const productIndexInSource = datiSourceWarehouse.findIndex(item => item.codice === p.codice);
+
+                if (productIndexInSource > -1) {
+                    // Verifica nuovamente la disponibilità per evitare prelievi eccessivi in caso di modifiche concorrenti
+                    if (datiSourceWarehouse[productIndexInSource].quantita < p.withdrawalQuantity) {
+                        await showAlert(`Errore: Quantità insufficiente per ${p.nome} (${p.codice}) nel magazzino ${p.originalWarehouse}. Disponibile: ${datiSourceWarehouse[productIndexInSource].quantita}, richiesto: ${p.withdrawalQuantity}.`);
+                        withdrawalSuccess = false;
+                        break; // Interrompi il processo se c'è un errore di quantità
+                    }
+
+                    datiSourceWarehouse[productIndexInSource].quantita -= p.withdrawalQuantity;
+                    salvaDatiInventario(datiSourceWarehouse, p.originalWarehouse);
+
+                    storicoGlobale.push({
+                        data: new Date().toLocaleString(),
+                        codice: p.codice,
+                        nome: p.nome,
+                        quantita: p.withdrawalQuantity,
+                        operatore: operatore,
+                        note: `Prelievo globale da ${p.originalWarehouse}`,
+                        magazzinoOrigine: p.originalWarehouse, // Aggiunto magazzino di origine
+                        giacenzaRimanentePostPrelievo: datiSourceWarehouse[productIndexInSource].quantita // Giacenza rimanente dopo il prelievo
+                    });
+                } else {
+                    await showAlert(`Errore interno: Prodotto ${p.nome} (${p.codice}) non trovato nel magazzino di origine ${p.originalWarehouse}.`);
+                    withdrawalSuccess = false;
+                    break;
+                }
+            }
+
+            if (withdrawalSuccess) {
+                salvaStorico(storicoGlobale);
+                aggiornaTabella(); // Aggiorna la tabella dell'inventario principale
+                closeGlobalWithdrawalModal();
+                await showAlert("Prelievo(i) completato(i) con successo!");
+            } else {
+                await showAlert("Il prelievo non è stato completato a causa di errori. Controlla i messaggi precedenti.");
+            }
+        }
+
+        // Funzione per importare dati da un file JSON
+        async function importJsonFile(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                await showAlert("Nessun file selezionato.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const jsonContent = e.target.result;
+                    const importedData = JSON.parse(jsonContent);
+
+                    // Validazione semplice: verifica che sia un array e che gli oggetti abbiano almeno nome e codice
+                    if (!Array.isArray(importedData) || !importedData.every(item => item.nome && item.codice)) {
+                        await showAlert("Il file JSON non è nel formato atteso (array di prodotti con 'nome' e 'codice').");
+                        return;
+                    }
+
+                    // Chiedi conferma all'utente se vuole sovrascrivere o unire i dati
+                    const currentData = caricaDatiInventario();
+                    let finalData = [];
+
+                    if (currentData.length > 0) {
+                        const choice = await showPrompt("I dati esistenti verranno sovrascritti o uniti? Digita 'sovrascrivi' o 'unisci'.");
+                        if (choice && choice.toLowerCase() === 'sovrascrivi') {
+                            finalData = importedData;
+                            await showAlert("Dati sovrascritti con successo!");
+                        } else if (choice && choice.toLowerCase() === 'unisci') {
+                            // Unisci i dati: se un prodotto esiste già (stesso codice), aggiorna la quantità, altrimenti aggiungi
+                            const mergedData = [...currentData];
+                            importedData.forEach(importedProduct => {
+                                const existingProductIndex = mergedData.findIndex(p => p.codice === importedProduct.codice);
+                                if (existingProductIndex > -1) {
+                                    // Aggiorna quantità e altri campi se presenti nel file importato
+                                    mergedData[existingProductIndex].quantita = (mergedData[existingProductIndex].quantita || 0) + (importedProduct.quantita || 0);
+                                    // Puoi decidere di aggiornare anche altri campi come nome, descrizione, ecc.
+                                    if (importedProduct.nome) mergedData[existingProductIndex].nome = importedProduct.nome;
+                                    if (importedProduct.unitaMisura) mergedData[existingProductIndex].unitaMisura = importedProduct.unitaMisura;
+                                    if (importedProduct.provenienza) mergedData[existingProductIndex].provenienza = importedProduct.provenienza;
+                                    if (importedProduct.ddt) mergedData[existingProductIndex].ddt = importedProduct.ddt;
+                                    if (importedProduct.descrizione) mergedData[existingProductIndex].descrizione = importedProduct.descrizione;
+                                } else {
+                                    mergedData.push(importedProduct);
+                                }
+                            });
+                            finalData = mergedData;
+                            await showAlert("Dati uniti con successo!");
+                        } else {
+                            await showAlert("Operazione annullata. Nessun dato importato.");
+                            return;
+                        }
+                    } else {
+                        finalData = importedData;
+                        await showAlert("Dati importati con successo!");
+                    }
+                    
+                    salvaDatiInventario(finalData);
+                    aggiornaTabella();
+
+                } catch (error) {
+                    console.error("Errore durante l'importazione del file JSON:", error);
+                    await showAlert("Errore durante l'importazione del file JSON. Assicurati che sia un JSON valido e ben formattato.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+
+        function cambiaMagazzino() {
+            magazzinoCorrente = document.getElementById("magazzinoSelect").value;
+            localStorage.setItem("magazzinoSelezionato", magazzinoCorrente);
+            setTema(magazzinoCorrente);
+            aggiornaTabella();
+        }
+
+        // Helper per disegnare testo con a capo e calcolare l'altezza
+        function drawWrappedText(doc, text, x, y, maxWidth, lineHeight) {
+            const splitText = doc.splitTextToSize(text, maxWidth);
+            doc.text(splitText, x, y);
+            return splitText.length * lineHeight;
+        }
+
+        function esportaInventarioPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFont("helvetica", "bold");
+            doc.text(`Inventario Magazzino ${magazzinoCorrente}`, 10, 10);
+            doc.setFontSize(9); /* Ridotto leggermente il font per più spazio */
+            
+            const startY = 20;
+            let currentY = startY;
+            const lineHeight = 5; /* Altezza riga per font 9 */
+            const columnX = {
+                nome: 10,
+                codice: 45,
+                quantita: 75,
+                unita: 90,
+                provenienza: 105,
+                ddt: 130,
+                descrizione: 155
+            };
+            const columnWidth = {
+                nome: 30,
+                codice: 25,
+                quantita: 15,
+                unita: 15,
+                provenienza: 20,
+                ddt: 20,
+                descrizione: 45
+            };
+
+            // Intestazioni della tabella
+            doc.setFont("helvetica", "bold");
+            doc.text("Nome", columnX.nome, currentY);
+            doc.text("Codice", columnX.codice, currentY);
+            doc.text("Quantità", columnX.quantita, currentY);
+            doc.text("Unità", columnX.unita, currentY);
+            doc.text("Provenienza", columnX.provenienza, currentY);
+            doc.text("DDT", columnX.ddt, currentY);
+            doc.text("Descrizione", columnX.descrizione, currentY);
+            currentY += lineHeight + 2; /* Spazio dopo le intestazioni */
+
+            doc.setFont("helvetica", "normal");
+            const dati = caricaDatiInventario();
+            dati.forEach(p => {
+                let rowMaxHeight = lineHeight; /* Altezza minima della riga */
+
+                // Controlla se è necessaria una nuova pagina
+                if (currentY + rowMaxHeight > 280) { /* 280 è vicino al fondo della pagina A4 */
+                    doc.addPage();
+                    currentY = startY;
+                    doc.setFont("helvetica", "bold");
+                    doc.text("Nome", columnX.nome, currentY);
+                    doc.text("Codice", columnX.codice, currentY);
+                    doc.text("Quantità", columnX.quantita, currentY);
+                    doc.text("Unità", columnX.unita, currentY);
+                    doc.text("Provenienza", columnX.provenienza, currentY);
+                    doc.text("DDT", columnX.ddt, currentY);
+                    doc.text("Descrizione", columnX.descrizione, currentY);
+                    currentY += lineHeight + 2;
+                    doc.setFont("helvetica", "normal");
+                }
+
+                // Disegna il testo per ogni colonna e calcola l'altezza massima della riga
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.nome, columnX.nome, currentY, columnWidth.nome, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.codice, columnX.codice, currentY, columnWidth.codice, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.quantita.toString(), columnX.quantita, currentY, columnWidth.quantita, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.unitaMisura || "", columnX.unita, currentY, columnWidth.unita, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.provenienza || "", columnX.provenienza, currentY, columnWidth.provenienza, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.ddt || "", columnX.ddt, currentY, columnWidth.ddt, lineHeight));
+                rowMaxHeight = Math.max(rowMaxHeight, drawWrappedText(doc, p.descrizione || "", columnX.descrizione, currentY, columnWidth.descrizione, lineHeight));
+                
+                currentY += rowMaxHeight + 2; /* Avanza Y per la riga successiva con un piccolo padding */
+            });
+            doc.save(`Inventario_${magazzinoCorrente}.pdf`);
+        }
+
+        // Inizializzazione
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("magazzinoSelect").value = magazzinoCorrente;
+            setTema(magazzinoCorrente);
+            aggiornaTabella();
+            document.getElementById("magazzinoSelect").addEventListener("change", cambiaMagazzino);
+            document.getElementById("filtroInventario").addEventListener("keyup", aggiornaTabella);
+            // Listener per il cambio del file nell'input nascosto
+            document.getElementById('jsonFileInput').addEventListener('change', importJsonFile);
+        });
+    </script>
+</body>
+</html>
